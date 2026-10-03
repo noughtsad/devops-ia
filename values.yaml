@@ -1,0 +1,12 @@
+# gha-runner-scale-set values (ARC). Token/URL are passed via --set in 02-install-arc.ps1
+minRunners: 0      # idle pool = zero pods (scale to zero)
+maxRunners: 4      # autoscale ceiling
+template:
+  spec:
+    containers:
+      - name: runner
+        image: ghcr.io/actions/actions-runner:latest
+        command: ["/home/runner/run.sh"]
+        resources:
+          requests: { cpu: "500m", memory: "512Mi" }
+          limits:   { cpu: "1",    memory: "1Gi" }

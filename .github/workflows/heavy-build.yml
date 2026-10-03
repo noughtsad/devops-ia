@@ -1,0 +1,30 @@
+name: Compute-heavy pipeline on ARC
+on:
+  workflow_dispatch:
+    inputs:
+      jobs_count:
+        description: "unused; matrix below fans out 3 parallel jobs"
+        required: false
+jobs:
+  crunch:
+    runs-on: arc-runner-set          # <- custom runner label (Helm release name)
+    strategy:
+      matrix:
+        shard: [1, 2, 3]             # 3 jobs -> ARC scales to 3 ephemeral pods
+    steps:
+      - name: Where am I running?
+        run: |
+          echo "Runner pod : $(hostname)"
+          echo "CPUs       : $(nproc)"
+          uname -a
+      - name: CPU-heavy work (hash 2GB x 2 + compress)
+        run: |
+          start=$(date +%s)
+          for i in 1 2; do
+            dd if=/dev/zero bs=1M count=2048 2>/dev/null | sha256sum &
+          done
+          dd if=/dev/urandom bs=1M count=512 2>/dev/null | gzip -9 | wc -c &
+          wait
+          echo "Shard ${{ matrix.shard }} finished in $(( $(date +%s) - start ))s"
+      - name: Hold a bit so scaling is visible on camera
+        run: sleep 45
